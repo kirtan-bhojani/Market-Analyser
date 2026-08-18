@@ -1,0 +1,68 @@
+[project]
+name = "market-assistant-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.30,<1",
+  "pydantic-settings>=2.4,<3",
+  "sqlalchemy[asyncio]>=2.0,<3",
+  "asyncpg>=0.29,<1",
+  "alembic>=1.13,<2",
+  "redis>=5.0.1,<6",
+  "feedparser>=6.0,<7",
+  "arq>=0.26,<1",
+  "ccxt>=4.0,<5",
+  "websockets>=12.0,<17",
+  "scikit-learn>=1.4,<2",
+  "lightgbm>=4.3,<5",
+  "pandas>=2.2,<3",
+  "numpy>=1.26,<3",
+  "pandas-ta>=0.3.14b0,<1",
+  "pgvector>=0.3,<1",
+  "sentence-transformers>=3.0,<6",
+  "anthropic>=0.40,<1",
+  "groq>=0.11,<2",
+  "google-generativeai>=0.8,<1",
+  "pyjwt[crypto]>=2.9,<3",
+  "httpx>=0.27,<1",
+  "structlog>=24,<27",
+  "sentry-sdk[fastapi]>=2,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0,<10",
+  "pytest-asyncio>=0.24,<2",
+  "ruff>=0.6,<1",
+  "mypy>=1.11,<3",
+  "hypothesis>=6,<7",
+  "fakeredis>=2.20,<3",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+  "acceptance: phase-exit acceptance tests",
+  "smoke: post-deploy smoke tests against live staging URLs",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true

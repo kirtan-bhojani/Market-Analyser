@@ -1,0 +1,380 @@
+<title>Market Assistant — Candidate A (Desk)</title>
+<style>
+  :root {
+    --bg: #0a0f1a;
+    --bg-rail: #0c1220;
+    --panel: #101827;
+    --panel-2: #0d1421;
+    --line: rgba(148, 163, 184, 0.12);
+    --line-strong: rgba(148, 163, 184, 0.22);
+    --ink: #e6edf7;
+    --ink-dim: #93a2ba;
+    --ink-faint: #5f7089;
+    --accent: #f5a524;
+    --accent-dim: rgba(245, 165, 36, 0.14);
+    --up: #35d07f;
+    --up-bg: rgba(53, 208, 127, 0.12);
+    --down: #f2606a;
+    --down-bg: rgba(242, 96, 106, 0.12);
+    --neutral: #6b7a91;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", monospace;
+    --ui: system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+    --r: 10px;
+  }
+  :root[data-theme="light"] {
+    --bg: #f3f5f9;
+    --bg-rail: #ffffff;
+    --panel: #ffffff;
+    --panel-2: #f7f9fc;
+    --line: rgba(15, 23, 42, 0.09);
+    --line-strong: rgba(15, 23, 42, 0.16);
+    --ink: #0f1b2d;
+    --ink-dim: #4c5a70;
+    --ink-faint: #8492a6;
+    --accent: #b3730a;
+    --accent-dim: rgba(179, 115, 10, 0.12);
+    --up: #128a54;
+    --up-bg: rgba(18, 138, 84, 0.10);
+    --down: #cf3742;
+    --down-bg: rgba(207, 55, 66, 0.10);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--ui);
+    font-size: 13px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .up { color: var(--up); }
+  .down { color: var(--down); }
+
+  /* ---- shell ---- */
+  .app { display: grid; grid-template-columns: 216px 1fr; min-height: 100vh; }
+  .rail {
+    background: var(--bg-rail);
+    border-right: 1px solid var(--line);
+    display: flex; flex-direction: column;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 9px;
+    padding: 16px 18px; border-bottom: 1px solid var(--line);
+  }
+  .brand-mark {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent), #d97706);
+    display: grid; place-items: center; color: #1a1206; font-weight: 800; font-size: 13px;
+  }
+  .brand-name { font-weight: 650; letter-spacing: -0.01em; }
+  .brand-name small { display: block; font-size: 10px; color: var(--ink-faint); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+  nav { padding: 8px; flex: 1; overflow: auto; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 11px; border-radius: 8px; color: var(--ink-dim);
+    font-weight: 500; cursor: pointer; position: relative; margin-bottom: 1px;
+  }
+  .nav-item:hover { background: var(--panel); color: var(--ink); }
+  .nav-item.active { background: var(--accent-dim); color: var(--ink); }
+  .nav-item.active::before {
+    content: ""; position: absolute; left: -8px; top: 7px; bottom: 7px;
+    width: 3px; border-radius: 0 3px 3px 0; background: var(--accent);
+  }
+  .nav-item .ic { width: 16px; text-align: center; opacity: 0.85; }
+  .nav-sep { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); padding: 12px 11px 5px; }
+  .rail-foot { padding: 10px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 9px; }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--panel); border: 1px solid var(--line-strong); display: grid; place-items: center; font-size: 11px; font-weight: 600; }
+
+  .main { display: flex; flex-direction: column; min-width: 0; }
+
+  /* ---- tape ---- */
+  .tape { display: flex; gap: 0; border-bottom: 1px solid var(--line); background: var(--panel-2); overflow: hidden; }
+  .tape-item { display: flex; align-items: baseline; gap: 7px; padding: 7px 14px; border-right: 1px solid var(--line); white-space: nowrap; }
+  .tape-item .sym { color: var(--ink-dim); font-weight: 600; font-size: 11px; }
+  .tape-item .px { font-size: 12px; }
+  .tape-item .chg { font-size: 11px; }
+
+  /* ---- topbar ---- */
+  .topbar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+  .search {
+    flex: 1; max-width: 420px; display: flex; align-items: center; gap: 8px;
+    background: var(--panel); border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px 12px; color: var(--ink-faint);
+  }
+  .search kbd { margin-left: auto; font-family: var(--mono); font-size: 10px; border: 1px solid var(--line-strong); border-radius: 4px; padding: 1px 5px; }
+  .badge { font-size: 10.5px; font-weight: 600; padding: 3px 8px; border-radius: 5px; letter-spacing: 0.02em; }
+  .badge.delay { background: var(--panel); border: 1px solid var(--line-strong); color: var(--ink-dim); }
+  .toggle { margin-left: auto; display: flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
+  .toggle button { background: var(--panel); color: var(--ink-dim); border: none; padding: 7px 12px; cursor: pointer; font-family: var(--ui); font-size: 12px; }
+  .toggle button.on { background: var(--accent-dim); color: var(--ink); }
+
+  /* ---- content grid ---- */
+  .content { padding: 18px 20px 8px; }
+  .h1 { font-size: 18px; font-weight: 650; letter-spacing: -0.02em; margin-bottom: 2px; }
+  .sub { color: var(--ink-faint); font-size: 12px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; align-items: start; }
+  .col { display: grid; gap: 14px; min-width: 0; }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
+  .panel-h { display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+  .panel-h h3 { font-size: 12px; font-weight: 650; letter-spacing: 0.01em; }
+  .panel-h .tag { margin-left: auto; font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+  .panel-b { padding: 14px; }
+
+  /* breadth row */
+  .breadth { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 13px 14px; }
+  .tile .lbl { font-size: 10.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .tile .big { font-size: 26px; font-weight: 300; letter-spacing: -0.02em; }
+  .gauge { height: 5px; border-radius: 3px; background: var(--line-strong); margin-top: 10px; overflow: hidden; }
+  .gauge > span { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 6px; }
+  .pill.risk-on { background: var(--up-bg); color: var(--up); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .heat { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 6px; }
+  .heat i { aspect-ratio: 1; border-radius: 3px; }
+
+  /* signal card */
+  .signal { border: 1px solid var(--line); border-radius: var(--r); padding: 14px; background: var(--panel-2); }
+  .signal + .signal { margin-top: 12px; }
+  .sig-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .sig-sym { font-size: 15px; font-weight: 700; }
+  .setup { font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 5px; letter-spacing: 0.03em; text-transform: uppercase; }
+  .setup.long { background: var(--up-bg); color: var(--up); }
+  .setup.short { background: var(--down-bg); color: var(--down); }
+  .sig-conf { margin-left: auto; text-align: right; }
+  .sig-conf .k { font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+  .levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .lvl { background: var(--panel); padding: 9px 11px; }
+  .lvl .k { font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+  .lvl .v { font-size: 14px; margin-top: 2px; }
+  .conf-bar { height: 4px; width: 76px; border-radius: 3px; background: var(--line-strong); margin-top: 5px; overflow: hidden; }
+  .conf-bar > span { display: block; height: 100%; background: var(--accent); }
+  .rationale { font-size: 12px; color: var(--ink-dim); margin-top: 11px; }
+  .rationale b { color: var(--ink); font-weight: 600; }
+  .disc { font-size: 10.5px; color: var(--ink-faint); margin-top: 6px; font-style: italic; }
+
+  /* scanner feed */
+  .feed-row { display: grid; grid-template-columns: 62px 1fr auto; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .feed-row:last-child { border-bottom: none; }
+  .feed-row .sym { font-weight: 650; font-size: 12px; }
+  .feed-row .rule { font-size: 11.5px; color: var(--ink-dim); }
+  .feed-row .t { font-size: 10.5px; color: var(--ink-faint); }
+  .spark { width: 58px; height: 22px; display: block; }
+
+  /* news */
+  .news-row { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); align-items: flex-start; }
+  .news-row:last-child { border-bottom: none; }
+  .sent { width: 3px; align-self: stretch; border-radius: 2px; flex-shrink: 0; }
+  .sent.pos { background: var(--up); } .sent.neg { background: var(--down); } .sent.neu { background: var(--neutral); }
+  .news-row .hl { font-size: 12px; line-height: 1.4; }
+  .news-row .meta { font-size: 10.5px; color: var(--ink-faint); margin-top: 2px; }
+
+  /* watchlist */
+  .watch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .wtile { border: 1px solid var(--line); border-radius: 8px; padding: 10px 11px; background: var(--panel-2); }
+  .wtile .sym { font-size: 11.5px; font-weight: 650; color: var(--ink-dim); }
+  .wtile .px { font-size: 15px; margin-top: 3px; }
+  .wtile .chg { font-size: 11px; margin-top: 2px; }
+  .wtile.gain { border-left: 2px solid var(--up); } .wtile.loss { border-left: 2px solid var(--down); }
+  .skel { position: relative; overflow: hidden; }
+  .skel .bar { height: 10px; border-radius: 4px; background: var(--line-strong); margin: 5px 0; }
+  .skel .bar.w60 { width: 60%; } .skel .bar.w40 { width: 40%; }
+  .skel::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent); animation: sweep 1.4s infinite; }
+  @keyframes sweep { 100% { transform: translateX(100%); } }
+
+  /* chat box */
+  .chatbox { display: flex; gap: 8px; align-items: center; padding: 10px; }
+  .chatbox input { flex: 1; background: var(--panel-2); border: 1px solid var(--line-strong); border-radius: 8px; padding: 9px 11px; color: var(--ink); font-family: var(--ui); font-size: 12px; }
+  .chatbox input::placeholder { color: var(--ink-faint); }
+  .chatbox button { background: var(--accent); color: #1a1206; border: none; border-radius: 8px; padding: 9px 14px; font-weight: 650; cursor: pointer; }
+
+  footer { padding: 16px 20px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 11px; text-align: center; }
+
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .rail { position: fixed; left: -240px; z-index: 20; transition: left .2s; }
+    .grid { grid-template-columns: 1fr; }
+    .breadth { grid-template-columns: repeat(2, 1fr); }
+    .tape { display: none; }
+  }
+</style>
+
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <div class="brand-mark">M</div>
+      <div class="brand-name">Market Assistant<small>Analysis desk</small></div>
+    </div>
+    <nav>
+      <div class="nav-item active"><span class="ic">◧</span> Home</div>
+      <div class="nav-item"><span class="ic">◵</span> Charts</div>
+      <div class="nav-item"><span class="ic">⊞</span> Scanner</div>
+      <div class="nav-item"><span class="ic">❏</span> Strategies</div>
+      <div class="nav-item"><span class="ic">↗</span> Trends</div>
+      <div class="nav-item"><span class="ic">▤</span> Analytics</div>
+      <div class="nav-item"><span class="ic">◈</span> ML</div>
+      <div class="nav-item"><span class="ic">✦</span> Chat</div>
+      <div class="nav-sep">System</div>
+      <div class="nav-item"><span class="ic">⚙</span> Settings</div>
+    </nav>
+    <div class="rail-foot">
+      <div class="avatar">P</div>
+      <div style="font-size:12px"><div style="font-weight:600">Parv G</div><div style="color:var(--ink-faint);font-size:10.5px">Free plan</div></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="tape">
+      <div class="tape-item"><span class="sym">BTC</span><span class="px num">67,412</span><span class="chg up num">+2.14%</span></div>
+      <div class="tape-item"><span class="sym">ETH</span><span class="px num">3,284</span><span class="chg up num">+1.02%</span></div>
+      <div class="tape-item"><span class="sym">SOL</span><span class="px num">184.6</span><span class="chg down num">−0.73%</span></div>
+      <div class="tape-item"><span class="sym">SPY</span><span class="px num">548.9</span><span class="chg up num">+0.31%</span></div>
+      <div class="tape-item"><span class="sym">NVDA</span><span class="px num">126.4</span><span class="chg down num">−1.18%</span></div>
+      <div class="tape-item"><span class="sym">DXY</span><span class="px num">104.2</span><span class="chg up num">+0.09%</span></div>
+    </div>
+
+    <div class="topbar">
+      <div class="search"><span>⌕</span> Search symbol — BTC-USD, AAPL… <kbd>/</kbd></div>
+      <span class="badge delay">◷ Equities 15-min delayed</span>
+      <div class="toggle">
+        <button class="on" onclick="setT('dark')">Dark</button>
+        <button onclick="setT('light')">Light</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="h1">Market Overview</div>
+      <div class="sub">Live crypto · delayed equities · updated 14:32:07 UTC</div>
+
+      <div class="breadth">
+        <div class="tile">
+          <div class="lbl">% Above 50-SMA</div>
+          <div class="big num">62<span style="font-size:15px;color:var(--ink-faint)">%</span></div>
+          <div class="gauge"><span style="width:62%"></span></div>
+        </div>
+        <div class="tile">
+          <div class="lbl">Advancers / Decliners</div>
+          <div class="big num up">312<span style="color:var(--ink-faint);font-size:15px"> / </span><span class="down">188</span></div>
+          <div class="gauge"><span style="width:62%;background:var(--up)"></span></div>
+        </div>
+        <div class="tile">
+          <div class="lbl">Market Regime</div>
+          <div style="margin:6px 0 4px"><span class="pill risk-on"><span class="dot"></span>Risk-On</span></div>
+          <div style="font-size:11px;color:var(--ink-faint)">Trend + breadth aligned</div>
+        </div>
+        <div class="tile">
+          <div class="lbl">Volatility</div>
+          <div class="heat">
+            <i style="background:var(--up-bg)"></i><i style="background:var(--up-bg)"></i><i style="background:var(--down-bg)"></i>
+            <i style="background:var(--up-bg)"></i><i style="background:var(--down-bg)"></i><i style="background:var(--down-bg)"></i>
+            <i style="background:var(--up-bg)"></i><i style="background:var(--up-bg)"></i><i style="background:var(--up-bg)"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="col">
+          <div class="panel">
+            <div class="panel-h"><h3>Active Signals</h3><span class="tag">3 live · analysis only</span></div>
+            <div class="panel-b">
+              <div class="signal">
+                <div class="sig-top">
+                  <span class="sig-sym">BTC-USD</span>
+                  <span class="setup long">Long setup</span>
+                  <div class="sig-conf"><div class="k">Confidence</div><div class="conf-bar"><span style="width:72%"></span></div></div>
+                </div>
+                <div class="levels">
+                  <div class="lvl"><div class="k">Ref entry</div><div class="v num">67,180</div></div>
+                  <div class="lvl"><div class="k">Stop-loss</div><div class="v num down">65,900</div></div>
+                  <div class="lvl"><div class="k">Take-profit</div><div class="v num up">70,400</div></div>
+                </div>
+                <div class="rationale">EMA 9/21 cross reclaimed with VWAP support. <b>Setup detected — historically 61% win rate over 240 trades (net of fees).</b></div>
+                <div class="disc">Educational analysis. Not a recommendation to trade.</div>
+              </div>
+              <div class="signal">
+                <div class="sig-top">
+                  <span class="sig-sym">NVDA</span>
+                  <span class="setup short">Short setup</span>
+                  <span class="badge delay" style="margin-left:4px">15-min delayed</span>
+                  <div class="sig-conf"><div class="k">Confidence</div><div class="conf-bar"><span style="width:54%"></span></div></div>
+                </div>
+                <div class="levels">
+                  <div class="lvl"><div class="k">Ref entry</div><div class="v num">126.80</div></div>
+                  <div class="lvl"><div class="k">Stop-loss</div><div class="v num down">129.10</div></div>
+                  <div class="lvl"><div class="k">Take-profit</div><div class="v num up">121.40</div></div>
+                </div>
+                <div class="rationale">Bollinger upper rejection + RSI divergence on 1h. <b>Setup detected — historically 57% win rate over 96 trades (net of fees).</b></div>
+                <div class="disc">Educational analysis. Not a recommendation to trade.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-h"><h3>Top Scanner Hits</h3><span class="tag">last 30 min</span></div>
+            <div class="panel-b" style="padding-top:4px;padding-bottom:4px">
+              <div class="feed-row">
+                <span class="sym">ETH-USD</span>
+                <div><div class="rule">VWAP reclaim · vol &gt; 2× avg</div></div>
+                <div style="text-align:right"><svg class="spark" viewBox="0 0 58 22"><polyline points="0,16 10,15 20,17 30,11 40,9 50,5 58,3" fill="none" stroke="var(--up)" stroke-width="1.5"/></svg><div class="t num">14:29</div></div>
+              </div>
+              <div class="feed-row">
+                <span class="sym">SOL-USD</span>
+                <div><div class="rule">EMA 9/21 bearish cross</div></div>
+                <div style="text-align:right"><svg class="spark" viewBox="0 0 58 22"><polyline points="0,4 10,6 20,7 30,11 40,13 50,16 58,18" fill="none" stroke="var(--down)" stroke-width="1.5"/></svg><div class="t num">14:24</div></div>
+              </div>
+              <div class="feed-row">
+                <span class="sym">AAPL</span>
+                <div><div class="rule">ORB breakout · 15m</div></div>
+                <div style="text-align:right"><svg class="spark" viewBox="0 0 58 22"><polyline points="0,14 10,13 20,12 30,10 40,11 50,7 58,5" fill="none" stroke="var(--up)" stroke-width="1.5"/></svg><div class="t num">14:18</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="panel">
+            <div class="panel-h"><h3>News &amp; Sentiment</h3></div>
+            <div class="panel-b" style="padding-top:6px;padding-bottom:6px">
+              <div class="news-row"><span class="sent pos"></span><div><div class="hl">ETF inflows hit 3-week high as BTC reclaims 67k</div><div class="meta">CoinDesk · 8m ago · <span class="up">+ bullish</span></div></div></div>
+              <div class="news-row"><span class="sent neg"></span><div><div class="hl">Chipmakers slide on softer demand guidance</div><div class="meta">Reuters · 22m ago · <span class="down">− bearish</span></div></div></div>
+              <div class="news-row"><span class="sent neu"></span><div><div class="hl">Fed minutes: officials split on timing of cuts</div><div class="meta">Bloomberg · 41m ago · neutral</div></div></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-h"><h3>Watchlist</h3><span class="tag">live</span></div>
+            <div class="panel-b">
+              <div class="watch">
+                <div class="wtile gain"><div class="sym">BTC-USD</div><div class="px num">67,412</div><div class="chg up num">+2.14%</div></div>
+                <div class="wtile loss"><div class="sym">SOL-USD</div><div class="px num">184.63</div><div class="chg down num">−0.73%</div></div>
+                <div class="wtile gain"><div class="sym">ETH-USD</div><div class="px num">3,284.5</div><div class="chg up num">+1.02%</div></div>
+                <div class="wtile skel"><div class="sym">AAPL</div><div class="bar w60"></div><div class="bar w40"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-h"><h3>Ask the desk</h3><span class="tag">beta</span></div>
+            <div class="chatbox">
+              <input placeholder="Ask about the market…" />
+              <button>Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>Educational analysis. Not investment advice. Past performance ≠ future results.</footer>
+  </div>
+</div>
+
+<script>
+  function setT(t){
+    document.documentElement.dataset.theme = t;
+    document.querySelectorAll('.toggle button').forEach(b => b.classList.toggle('on', b.textContent.toLowerCase() === t));
+  }
+  document.documentElement.dataset.theme = 'dark';
+</script>

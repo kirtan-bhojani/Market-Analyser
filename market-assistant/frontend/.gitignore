@@ -1,0 +1,23 @@
+node_modules/
+dist/
+*.tsbuildinfo
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# tsc -b emits alongside sources; keep compiled output out of git
+src/**/*.js
+src/**/*.d.ts
+# ...but vite-env.d.ts is a hand-written source file, not tsc output
+!src/vite-env.d.ts
+tests/**/*.js
+tests/**/*.d.ts
+vite.config.js
+vite.config.d.ts
+
+# local secrets (Supabase anon key etc.) — never commit
+.env
+
+# Vercel CLI project link (org/project IDs) — never commit
+.vercel/

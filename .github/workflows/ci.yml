@@ -1,0 +1,188 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call: {}  # reused as the pre-deploy gate by deploy.yml
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: market-assistant/backend
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: market
+          POSTGRES_PASSWORD: market
+          POSTGRES_DB: market_assistant
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U market -d market_assistant"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # CI is not prod: keep the ENV=test path so tooling steps that build
+      # Settings outside pytest (e.g. `alembic upgrade head`) don't trip the
+      # prod fail-fast config guard, which requires managed-DB + real secrets.
+      ENV: test
+      DATABASE_URL: postgresql+asyncpg://market:market@localhost:5434/market_assistant
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Install from the committed uv.lock (--frozen) so CI tests the exact
+      # versions prod ships, and neither floats onto a new major.
+      - run: pip install --no-cache-dir uv
+      - run: uv sync --frozen --extra dev
+      - run: uv run --frozen ruff check .
+      - run: uv run --frozen mypy app
+      - run: uv run --frozen alembic upgrade head
+      - run: uv run --frozen pytest -v
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: market-assistant/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: market-assistant/frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+
+  e2e:
+    runs-on: ubuntu-latest
+    # Run in the pinned Playwright image so visual snapshot baselines (generated
+    # in this same image) render identically — the usual cross-platform AA drift
+    # that makes screenshot tests flaky can't happen when the renderer matches.
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.1-jammy
+    defaults:
+      run:
+        working-directory: market-assistant/frontend
+    env:
+      # Dummy Supabase build env: supabase-js derives its localStorage session
+      # key from the URL, so the ref (127) must match the sb-127-auth-token that
+      # _auth-helper.ts seeds — else every spec redirects to /login and fails.
+      # The suite is hermetic (each spec stubs fetch/WebSocket/SSE), so no live
+      # backend, Postgres, or Redis is needed here.
+      VITE_SUPABASE_URL: http://127.0.0.1:54321
+      VITE_SUPABASE_ANON_KEY: test-anon-key
+      VITE_API_URL: http://localhost:8000
+      VITE_WS_URL: ws://localhost:8000
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: market-assistant/frontend/playwright-report
+          retention-days: 7
+
+  # H11: the `e2e` job above is hermetic — every spec stubs fetch/WS/SSE, so no
+  # test exercises the real API. This job boots the live backend (ENV=test) with
+  # Postgres + Redis and runs scanner.spec end to end: UI -> real POST -> DB ->
+  # refetch -> render, plus the synthetic-candle replay over the test-only route.
+  # scanner.spec takes no screenshots, so it needs no pinned Playwright image.
+  e2e-fullstack:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: market
+          POSTGRES_PASSWORD: market
+          POSTGRES_DB: market_assistant
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U market -d market_assistant"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      ENV: test
+      DATABASE_URL: postgresql+asyncpg://market:market@localhost:5434/market_assistant
+      REDIS_URL: redis://localhost:6379/0
+      # The origin the preview server serves from; the backend must allow it
+      # through CORS or the browser blocks the rule POST at preflight.
+      CORS_ALLOWED_ORIGINS: http://127.0.0.1:4173,http://localhost:4173
+      VITE_SUPABASE_URL: http://127.0.0.1:54321
+      VITE_SUPABASE_ANON_KEY: test-anon-key
+      VITE_API_URL: http://localhost:8000
+      VITE_WS_URL: ws://localhost:8000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: market-assistant/frontend/package-lock.json
+      - name: Install backend (frozen)
+        working-directory: market-assistant/backend
+        run: |
+          pip install --no-cache-dir uv
+          uv sync --frozen --extra dev
+      - name: Migrate + seed the e2e instrument (id=1)
+        working-directory: market-assistant/backend
+        run: |
+          uv run --frozen alembic upgrade head
+          uv run --frozen python -m app.scripts.e2e_seed
+      - name: Boot backend (ENV=test) on :8000
+        working-directory: market-assistant/backend
+        run: |
+          nohup uv run --frozen uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
+          for _ in $(seq 1 30); do
+            curl -sf http://localhost:8000/health >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:8000/health || { echo "backend failed to start"; cat /tmp/backend.log; exit 1; }
+      - name: Install frontend deps + Playwright chromium
+        working-directory: market-assistant/frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Run scanner.spec against the live backend
+        working-directory: market-assistant/frontend
+        run: npx playwright test scanner.spec.ts
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-fullstack-report
+          path: |
+            market-assistant/frontend/playwright-report
+            /tmp/backend.log
+          retention-days: 7

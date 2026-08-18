@@ -1,0 +1,12 @@
+.DS_Store
+
+# Internal planning docs — not published to the repo
+Plan to follow/
+trading-assistant-build-spec.md
+PLAN-AUDIT-FIXES.md
+
+# SDD scratch (briefs, reports, review packages, progress ledger)
+.superpowers/
+.gstack/
+.claude/
+*_local.py

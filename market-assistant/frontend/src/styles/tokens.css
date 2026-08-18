@@ -1,0 +1,128 @@
+/* Design tokens — single source of truth for color/type/spacing/radius/shadow.
+   Derived from the "Trading desk" design (Phase 2.5 winner).
+   Dark is the default; light overrides under [data-theme] and prefers-color-scheme. */
+
+:root {
+  /* Type */
+  --font-ui: system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", monospace;
+
+  --text-xs: 10.5px;
+  --text-sm: 11.5px;
+  --text-base: 13px;
+  --text-md: 15px;
+  --text-lg: 18px;
+  --text-xl: 26px;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 14px;
+  --space-5: 18px;
+  --space-6: 20px;
+  --space-8: 32px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+
+  /* Shadow */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-pop: 0 8px 28px rgba(0, 0, 0, 0.4);
+
+  /* Layout */
+  --rail-w: 216px;
+
+  /* --- Dark palette (default) --- */
+  --bg: #0a0f1a;
+  --bg-rail: #0c1220;
+  --panel: #101827;
+  --panel-2: #0d1421;
+  --line: rgba(148, 163, 184, 0.12);
+  --line-strong: rgba(148, 163, 184, 0.22);
+  --ink: #e6edf7;
+  --ink-dim: #93a2ba;
+  --ink-faint: #5f7089;
+  --accent: #f5a524;
+  --accent-ink: #1a1206;
+  --accent-dim: rgba(245, 165, 36, 0.14);
+  --up: #35d07f;
+  --up-bg: rgba(53, 208, 127, 0.12);
+  --down: #f2606a;
+  --down-bg: rgba(242, 96, 106, 0.12);
+  --neutral: #6b7a91;
+  --skeleton-sweep: rgba(255, 255, 255, 0.06);
+
+  /* Chart series (canvas literals; read via getComputedStyle) */
+  --chart-grid: rgba(148, 163, 184, 0.08);
+  --chart-ema: #f5a524;
+  --chart-vwap: #8b7cf6;
+  --chart-bb: #4b7bd6;
+  --chart-vol-up: rgba(53, 208, 127, 0.45);
+  --chart-vol-down: rgba(242, 96, 106, 0.45);
+
+  /* Watchlist tile ink — always light; tile backgrounds are dark heat colors
+     in both themes, so these are intentionally not overridden below. */
+  --wl-ink: #f4f7fb;
+  --wl-ink-dim: rgba(244, 247, 251, 0.72);
+}
+
+/* Light palette — applied via OS preference unless the toggle overrides it */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f3f5f9;
+    --bg-rail: #ffffff;
+    --panel: #ffffff;
+    --panel-2: #f7f9fc;
+    --line: rgba(15, 23, 42, 0.09);
+    --line-strong: rgba(15, 23, 42, 0.16);
+    --ink: #0f1b2d;
+    --ink-dim: #4c5a70;
+    --ink-faint: #8492a6;
+    --accent: #b3730a;
+    --accent-ink: #ffffff;
+    --accent-dim: rgba(179, 115, 10, 0.12);
+    --up: #128a54;
+    --up-bg: rgba(18, 138, 84, 0.1);
+    --down: #cf3742;
+    --down-bg: rgba(207, 55, 66, 0.1);
+    --neutral: #6b7a91;
+    --skeleton-sweep: rgba(15, 23, 42, 0.05);
+    --chart-grid: rgba(15, 23, 42, 0.06);
+    --chart-ema: #b3730a;
+    --chart-vwap: #6d5ae0;
+    --chart-bb: #2f66c7;
+    --chart-vol-up: rgba(18, 138, 84, 0.4);
+    --chart-vol-down: rgba(207, 55, 66, 0.4);
+  }
+}
+
+/* Explicit toggle wins over OS preference in both directions */
+:root[data-theme="light"] {
+  --bg: #f3f5f9;
+  --bg-rail: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f7f9fc;
+  --line: rgba(15, 23, 42, 0.09);
+  --line-strong: rgba(15, 23, 42, 0.16);
+  --ink: #0f1b2d;
+  --ink-dim: #4c5a70;
+  --ink-faint: #8492a6;
+  --accent: #b3730a;
+  --accent-ink: #ffffff;
+  --accent-dim: rgba(179, 115, 10, 0.12);
+  --up: #128a54;
+  --up-bg: rgba(18, 138, 84, 0.1);
+  --down: #cf3742;
+  --down-bg: rgba(207, 55, 66, 0.1);
+  --neutral: #6b7a91;
+  --skeleton-sweep: rgba(15, 23, 42, 0.05);
+  --chart-grid: rgba(15, 23, 42, 0.06);
+  --chart-ema: #b3730a;
+  --chart-vwap: #6d5ae0;
+  --chart-bb: #2f66c7;
+  --chart-vol-up: rgba(18, 138, 84, 0.4);
+  --chart-vol-down: rgba(207, 55, 66, 0.4);
+}

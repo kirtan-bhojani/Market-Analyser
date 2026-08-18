@@ -1,0 +1,158 @@
+name: Deploy
+
+# Production deploys run only on merge to main and only AFTER the full CI gate
+# passes. Pull requests get a non-prod Vercel preview (frontend only).
+#
+# Every deploy/preview/smoke job is guarded on the presence of its secrets: until
+# the HF Space / Vercel / staging secrets are configured, the jobs no-op (green)
+# instead of hard-failing. Once the secrets exist, the pipeline activates.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/ci.yml
+
+  # Backend → Hugging Face Space (Docker SDK). Uploading the backend folder to
+  # the Space repo triggers HF to rebuild and restart the container.
+  deploy-backend:
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_SPACE_ID: ${{ secrets.HF_SPACE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip notice
+        if: env.HF_TOKEN == '' || env.HF_SPACE_ID == ''
+        run: echo "HF_TOKEN/HF_SPACE_ID not set — skipping backend deploy (configure HF Space secrets to enable)."
+      - uses: actions/setup-python@v5
+        if: env.HF_TOKEN != '' && env.HF_SPACE_ID != ''
+        with:
+          python-version: "3.12"
+      - name: Upload backend to the HF Space
+        if: env.HF_TOKEN != '' && env.HF_SPACE_ID != ''
+        run: |
+          pip install "huggingface_hub>=0.25"
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+          HfApi().upload_folder(
+              folder_path="market-assistant/backend",
+              repo_id=os.environ["HF_SPACE_ID"],
+              repo_type="space",
+              token=os.environ["HF_TOKEN"],
+              commit_message="CI deploy from main",
+              ignore_patterns=[".venv/*", "__pycache__/*", "**/__pycache__/*",
+                               "*.pyc", ".pytest_cache/*", "tests/*"],
+          )
+          PY
+
+  # Frontend → Vercel production (prebuilt; git auto-deploy is disabled in vercel.json).
+  deploy-frontend:
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    defaults:
+      run:
+        working-directory: market-assistant/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip notice
+        if: env.VERCEL_TOKEN == ''
+        run: echo "VERCEL_TOKEN not set — skipping frontend deploy (configure Vercel secrets to enable)."
+      - uses: actions/setup-node@v4
+        if: env.VERCEL_TOKEN != ''
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: market-assistant/frontend/package-lock.json
+      - if: env.VERCEL_TOKEN != ''
+        run: npm ci
+      - if: env.VERCEL_TOKEN != ''
+        run: npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - if: env.VERCEL_TOKEN != ''
+        run: npx vercel build --prod --token="$VERCEL_TOKEN"
+      - if: env.VERCEL_TOKEN != ''
+        run: npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+  # PR preview → Vercel (non-prod, staging env vars), URL commented on the PR.
+  preview-frontend:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read       # checkout needs this; specifying permissions drops unlisted scopes
+      pull-requests: write
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    defaults:
+      run:
+        working-directory: market-assistant/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip notice
+        if: env.VERCEL_TOKEN == ''
+        run: echo "VERCEL_TOKEN not set — skipping preview deploy (configure Vercel secrets to enable)."
+      - uses: actions/setup-node@v4
+        if: env.VERCEL_TOKEN != ''
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: market-assistant/frontend/package-lock.json
+      - if: env.VERCEL_TOKEN != ''
+        run: npm ci
+      - if: env.VERCEL_TOKEN != ''
+        run: npx vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+      - if: env.VERCEL_TOKEN != ''
+        run: npx vercel build --token="$VERCEL_TOKEN"
+      - id: deploy
+        if: env.VERCEL_TOKEN != ''
+        run: echo "url=$(npx vercel deploy --prebuilt --token=\"$VERCEL_TOKEN\")" >> "$GITHUB_OUTPUT"
+      - uses: actions/github-script@v7
+        if: env.VERCEL_TOKEN != ''
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `🔎 Vercel preview: ${{ steps.deploy.outputs.url }}`,
+            })
+
+  # Post-deploy smoke against the live URLs. Gate for phase exit.
+  smoke:
+    if: github.event_name == 'push'
+    needs: [deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: market-assistant/backend
+    env:
+      STAGING_URL: ${{ secrets.STAGING_URL }}
+      STAGING_WS_URL: ${{ secrets.STAGING_WS_URL }}
+      STAGING_FRONTEND_URL: ${{ secrets.STAGING_FRONTEND_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip notice
+        if: env.STAGING_URL == ''
+        run: echo "STAGING_URL not set — skipping post-deploy smoke (configure staging secrets to enable)."
+      - uses: actions/setup-python@v5
+        if: env.STAGING_URL != ''
+        with:
+          python-version: "3.12"
+      - if: env.STAGING_URL != ''
+        run: pip install --no-cache-dir uv
+      - if: env.STAGING_URL != ''
+        run: uv sync --frozen --extra dev
+      - if: env.STAGING_URL != ''
+        run: uv run --frozen pytest -m smoke -v
